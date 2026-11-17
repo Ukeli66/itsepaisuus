@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hakukonepeli: Suomen itsenäistyminen</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #1d2433; background: #0b1e3f; min-height: 100vh; }
+  header { text-align: center; color: #fff; padding: 24px 16px 8px; }
+  header h1 { margin: 0 0 6px; font-size: 2rem; }
+  header p { margin: 0 auto; max-width: 760px; line-height: 1.5; opacity: .9; }
+  .scene { position: relative; max-width: 1100px; margin: 20px auto; aspect-ratio: 16/8; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    background: radial-gradient(circle at 80% 20%, rgba(255,255,255,.9) 0 2%, transparent 2.5%), linear-gradient(to bottom, #0d2a5c 0%, #2d5aa0 55%, #dfe9f5 55.5%, #ffffff 100%); }
+  .flag { position: absolute; left: 6%; top: 10%; width: 22%; aspect-ratio: 18/11; background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.4); animation: wave 4s ease-in-out infinite; }
+  .flag::before { content:""; position:absolute; left:27.7%; top:0; width:16.7%; height:100%; background:#002f6c; }
+  .flag::after  { content:""; position:absolute; top:36.4%; left:0; height:27.3%; width:100%; background:#002f6c; }
+  .pole { position:absolute; left:5.6%; top:8%; width:.6%; height:62%; background:#ccc; border-radius:3px; }
+  @keyframes wave { 0%,100% { transform: skewY(0deg);} 50% { transform: skewY(-2deg);} }
+  .hills { position:absolute; bottom:0; left:0; right:0; height:48%; background: radial-gradient(ellipse at 20% 100%, #fff 0 45%, transparent 46%), radial-gradient(ellipse at 75% 100%, #f1f6fc 0 55%, transparent 56%); }
+  .trees { position:absolute; bottom:38%; left:0; right:0; height:12%; background: repeating-linear-gradient(90deg, transparent 0 18px, #1f4d2e 18px 20px); opacity:.5; }
+  .candle { position:absolute; width:2.2%; height:14%; background:#fff; border-radius:3px; bottom:30%; }
+  .candle::after { content:""; position:absolute; top:-35%; left:20%; width:60%; height:35%; background: radial-gradient(circle, #ffd76a 0 40%, #ff9a2a 60%, transparent 70%); border-radius:50%; animation: flicker 1.2s infinite alternate; }
+  @keyframes flicker { from { transform: scale(1);} to { transform: scale(1.15) translateY(-2px);} }
+  .year { position:absolute; right:5%; top:8%; font-size: clamp(2rem, 7vw, 5.5rem); font-weight:800; color: rgba(255,255,255,.18); letter-spacing: 4px; }
+  .hotspot { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 3px solid #fff; background: #1e88e5; color: #fff; font-weight: 700; font-size: 1.15rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transform: translate(-50%,-50%); animation: pulse 2s infinite; transition: background .2s, opacity .2s; }
+  .hotspot:hover, .hotspot:focus { background: #1565c0; outline: none; transform: translate(-50%,-50%) scale(1.1); }
+  .hotspot.visited { background: #43a047; animation: none; }
+  .hotspot.code { background: #f57c00; width: 54px; height: 54px; }
+  .hotspot.locked { background: #607d8b; animation: none; cursor: not-allowed; opacity: .75; font-size: .95rem; }
+  .hotspot.locked:hover, .hotspot.locked:focus { background: #607d8b; transform: translate(-50%,-50%); }
+  .hotspot.shake { animation: shake .4s; }
+  @keyframes shake { 0%,100% { margin-left:0;} 25% { margin-left:-6px;} 75% { margin-left:6px;} }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.7);} 70% { box-shadow: 0 0 0 14px rgba(255,255,255,0);} 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0);} }
+  .progress { text-align:center; color:#fff; margin-bottom: 30px; }
+  .toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: #263238; color: #fff; padding: 12px 20px; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 20; }
+  .toast.show { opacity: 1; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  .overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 12px; max-width: 560px; width: 100%; padding: 28px 30px; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,.4); }
+  .modal h2 { margin-top: 0; font-size: 1.7rem; }
+  .modal p { line-height: 1.6; font-size: 1.08rem; }
+  .claim-label { font-weight: 700; margin-bottom: 4px; }
+  .claim { font-style: italic; margin-top: 0; }
+  .close { position: absolute; top: 10px; right: 14px; border: none; background: none; font-size: 1.8rem; cursor: pointer; color:#555; }
+  .btn { display: inline-block; background: #1e78e0; color: #fff; text-decoration: none; padding: 12px 22px; border-radius: 6px; font-size: 1.05rem; border: none; cursor: pointer; margin: 4px 6px 4px 0; font-family: inherit; }
+  .btn:hover { background: #155fb5; }
+  .btn.secondary { background: #e8eef7; color: #1d2433; }
+  .hint { display:none; background:#fff8e1; border-left: 4px solid #ffb300; padding: 10px 14px; margin-top: 12px; border-radius: 4px; }
+  .hint.show { display:block; }
+  .hint code { background:#fff; padding:2px 6px; border-radius:4px; border:1px solid #ddd; }
+  .code-box { text-align: center; }
+  .code-box input { width: 100%; font-size: 2rem; text-align: center; letter-spacing: 12px; padding: 12px; border: 2px solid #222; border-radius: 6px; margin: 16px 0; }
+  .go { width: 64px; height: 64px; border-radius: 50%; border: none; background: #1e78e0; color: #fff; font-size: 2rem; cursor: pointer; }
+  .feedback { font-weight: 700; margin-top: 14px; min-height: 1.4em; }
+  .feedback.ok { color: #2e7d32; } .feedback.bad { color: #c62828; }
+  .answers { text-align: left; margin-top: 16px; }
+  .answers li { margin-bottom: 10px; line-height: 1.5; }
+  .tag { display:inline-block; font-size:.8rem; font-weight:700; padding:2px 8px; border-radius:10px; margin-right:6px; }
+  .tag.t { background:#c8e6c9; color:#1b5e20; } .tag.f { background:#ffcdd2; color:#b71c1c; }
+  .tips { max-width: 1100px; margin: 0 auto 40px; background: #fff; border-radius: 12px; padding: 18px 24px; }
+  .tips h3 { margin-top: 0; }
+  .tips li { line-height: 1.6; }
+
+  /* ===== KENTTÄ 1: AMMUNTA ===== */
+  #shooter { position: fixed; inset: 0; z-index: 50; overflow: hidden; cursor: none; background: radial-gradient(ellipse at 50% 120%, #1c3f7a 0%, #0b1e3f 55%, #050d1d 100%); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  #shooter.hidden { display: none; }
+  .stars { position:absolute; inset:0; opacity: .7; pointer-events: none; background-image:
+    radial-gradient(1px 1px at 10% 20%, #fff, transparent), radial-gradient(1px 1px at 30% 70%, #fff, transparent), radial-gradient(2px 2px at 55% 35%, #fff, transparent), radial-gradient(1px 1px at 80% 15%, #fff, transparent),
+    radial-gradient(1px 1px at 90% 60%, #fff, transparent), radial-gradient(2px 2px at 15% 85%, #fff, transparent), radial-gradient(1px 1px at 70% 90%, #fff, transparent), radial-gradient(1px 1px at 45% 55%, #fff, transparent); }
+  .s-top { position: absolute; top: 0; left: 0; right: 0; padding: 18px 20px; text-align: center; color: #fff; background: linear-gradient(to bottom, rgba(0,0,0,.55), transparent); pointer-events: none; z-index: 3; }
+  .s-q { font-size: clamp(1.3rem, 3vw, 2rem); font-weight: 700; margin: 6px 0; }
+  .s-info { font-size: 1rem; opacity: .85; }
+  .dots span { display:inline-block; width:14px; height:14px; border-radius:50%; margin:6px 4px 0; background: rgba(255,255,255,.25); }
+  .dots span.done { background: #43a047; } .dots span.now { background: #ffb300; }
+  .year-t { position: absolute; font-weight: 800; color: #fff; font-size: clamp(1.6rem, 3.5vw, 2.6rem); padding: 6px 16px; border-radius: 10px; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.35); text-shadow: 0 2px 8px rgba(0,0,0,.6); white-space: nowrap; z-index: 2; }
+  .year-t.hit-ok { background: #43a047; border-color: #a5d6a7; }
+  .year-t.hit-bad { background: #c62828; border-color: #ef9a9a; opacity: .4; }
+  #crosshair { position: fixed; width: 60px; height: 60px; margin: -30px 0 0 -30px; pointer-events: none; z-index: 60; left: -100px; top: -100px; }
+  #crosshair::before, #crosshair::after { content:""; position:absolute; background:#ff5252; }
+  #crosshair::before { left: 50%; top: 0; width: 2px; height: 100%; margin-left:-1px; }
+  #crosshair::after { top: 50%; left: 0; height: 2px; width: 100%; margin-top:-1px; }
+  #crosshair i { position:absolute; inset: 10px; border: 2px solid #ff5252; border-radius: 50%; }
+  #crosshair.fire { transform: scale(.75); }
+  .s-msg { position:absolute; left:50%; top:55%; transform: translate(-50%,-50%); color:#fff; font-size: clamp(1.4rem,3vw,2.2rem); font-weight:800; text-align:center; pointer-events:none; z-index: 4; opacity:0; transition: opacity .3s; text-shadow: 0 2px 10px #000; max-width: 90%; }
+  .s-msg.show { opacity: 1; }
+  .s-start { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:70; cursor: default; background: rgba(0,0,0,.35); }
+  .s-card { background:#fff; border-radius:14px; padding: 30px 34px; max-width: 520px; margin: 16px; text-align:center; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  .s-card h2 { margin-top:0; font-size: 1.8rem; }
+  .s-card p { line-height:1.6; font-size:1.08rem; }
+  .flash { position:absolute; inset:0; background: rgba(198,40,40,.3); opacity:0; pointer-events:none; z-index:1; transition: opacity .2s; }
+  .flash.on { opacity: 1; }
+
+  /* ===== KENTÄT 3–5: YHTEISET ===== */
+  .level { position: fixed; inset: 0; overflow-y: auto; display: none; padding: 24px 16px 40px; }
+  .level.open { display: block; }
+  #level3 { z-index: 45; background: linear-gradient(160deg, #0b1e3f 0%, #163a73 100%); }
+  #level4 { z-index: 46; background: linear-gradient(160deg, #2a1240 0%, #0b1e3f 100%); }
+  #level5 { z-index: 47; background: linear-gradient(160deg, #0f3d2e 0%, #0b1e3f 100%); }
+  .l-wrap { max-width: 900px; margin: 0 auto; }
+  .l-head { color: #fff; text-align: center; margin-bottom: 10px; }
+  .l-head h1 { margin: 0 0 6px; font-size: 2rem; }
+  .l-card { background: #fff; border-radius: 14px; padding: 24px 28px; box-shadow: 0 10px 30px rgba(0,0,0,.35); margin-top: 10px; }
+  .l-task { font-size: 1.25rem; font-weight: 700; margin: 4px 0 14px; line-height: 1.5; }
+  .l-label { font-weight: 700; margin: 14px 0 6px; }
+  .l-fb { line-height: 1.6; min-height: 1.5em; }
+  .tipbox { background: #fff8e1; border-left: 4px solid #ffb300; padding: 10px 14px; border-radius: 4px; margin-top: 16px; line-height: 1.5; font-size: .98rem; }
+
+  /* Kenttä 3 */
+  .searchbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 58px; border: 2px solid #1e78e0; border-radius: 30px; padding: 8px 16px; background: #f7faff; }
+  .searchbar .ph { color: #8a94a6; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 2px solid #c5d3e8; background: #eef3fb; color: #1d2433; border-radius: 20px; padding: 7px 14px; font-size: 1.05rem; cursor: pointer; font-family: inherit; }
+  .chip:hover { background: #dce8f8; }
+  .chip.used { opacity: .3; cursor: default; }
+  .searchbar .chip { background: #1e78e0; color: #fff; border-color: #1e78e0; }
+  .starsrow { font-size: 2rem; letter-spacing: 4px; margin: 14px 0 4px; min-height: 2.4rem; }
+  .l3-answer { display: none; margin-top: 18px; border-top: 1px solid #e3e8f0; padding-top: 16px; }
+  .l3-answer.show { display: block; }
+  .l3-answer input { width: 100%; font-size: 1.2rem; padding: 10px 12px; border: 2px solid #222; border-radius: 6px; margin: 6px 0 10px; }
+
+  /* Kenttä 4 */
+  .l4-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .l4-col h3 { margin: 0 0 8px; font-size: 1.05rem; color: #555; }
+  .l4-item { display: block; width: 100%; text-align: left; border: 2px solid #c5d3e8; background: #eef3fb; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; font-size: 1.05rem; cursor: pointer; font-family: inherit; color:#1d2433; }
+  .l4-item:hover { background: #dce8f8; }
+  .l4-item.sel { border-color: #f57c00; background: #fff3e0; }
+  .l4-item.ok { border-color: #43a047; background: #e8f5e9; cursor: default; }
+  .l4-item.bad { border-color: #c62828; background: #ffebee; }
+  .l4-row { display: flex; gap: 6px; align-items: stretch; margin-bottom: 8px; }
+  .l4-row .l4-item { margin-bottom: 0; flex: 1; }
+  .l4-tool { display: flex; align-items: center; justify-content: center; min-width: 46px; border: 2px solid #c5d3e8; background: #fff;
+    border-radius: 10px; font-size: 1.2rem; cursor: pointer; text-decoration: none; color: #1d2433; font-family: inherit; }
+  .l4-tool:hover { background: #fff8e1; border-color: #ffb300; }
+  .l4-hint { background: #fff8e1; border-left: 4px solid #ffb300; padding: 10px 14px; border-radius: 4px; margin-top: 12px; line-height: 1.6; display: none; }
+  .l4-hint.show { display: block; }
+  .l4-hint code { background:#fff; padding:2px 6px; border-radius:4px; border:1px solid #ddd; }
+  @media (max-width: 600px) { .l4-cols { grid-template-columns: 1fr; } }
+
+  /* ===== KENTTÄ 5: BUSSIPYSÄKKI ===== */
+  #level5 { position: fixed; inset: 0; z-index: 47; overflow-y: auto; display: none;
+    background: linear-gradient(160deg, #0f3d2e 0%, #0b1e3f 100%); padding: 24px 16px 40px; }
+  #level5.open { display: block; }
+  .stop { position: relative; height: 300px; border-radius: 12px; overflow: hidden; cursor: pointer; margin-top: 10px;
+    background: linear-gradient(to bottom, #9fc5e8 0%, #cfe2f3 62%, #8d8d8d 62%, #6f6f6f 100%); touch-action: manipulation; }
+  .stop.rain { background: linear-gradient(to bottom, #5f6f80 0%, #8a99a8 62%, #5d5d5d 62%, #4a4a4a 100%); }
+  .shelter { position: absolute; left: 40%; width: 20%; top: 18%; height: 46%; border: 4px solid #37474f; border-bottom: none;
+    background: rgba(200,230,255,.35); pointer-events: none; }
+  .shelter::before { content: ""; position: absolute; left: -10px; right: -10px; top: -14px; height: 14px; background: #37474f; border-radius: 4px; }
+  .sign { position: absolute; left: 8%; top: 14%; width: 6px; height: 50%; background: #455a64; pointer-events: none; }
+  .sign::after { content: "🚌"; position: absolute; top: -34px; left: -17px; width: 40px; height: 34px; background: #ffd600;
+    border-radius: 6px; text-align: center; font-size: 22px; line-height: 34px; }
+  .rainfx { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s;
+    background-image: repeating-linear-gradient(105deg, rgba(255,255,255,.35) 0 1px, transparent 1px 14px);
+    animation: rainfall .4s linear infinite; }
+  .stop.rain .rainfx { opacity: 1; }
+  @keyframes rainfall { from { background-position: 0 0; } to { background-position: -10px 40px; } }
+  .person { position: absolute; bottom: 30%; font-size: 52px; transform: translateX(-50%); transition: left 1s ease-in-out; pointer-events: none; line-height: 1; }
+  .person.ghost { opacity: .45; transition: none; }
+  .bubble { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #fff; color: #1d2433;
+    font-size: .95rem; padding: 4px 10px; border-radius: 10px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.3); margin-bottom: 4px; }
+  .waiting { display: flex; align-items: center; gap: 12px; font-size: 1.1rem; margin-top: 6px; }
+  .waiting .w-fig { font-size: 44px; }
+  .score { font-size: 1.15rem; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ===== KENTTÄ 1: VUOSILUKUAMMUNTA ===== -->
+<div id="shooter">
+  <div class="stars"></div>
+  <div class="flash" id="flash"></div>
+  <div class="s-top">
+    <div class="s-info" id="sInfo">Kenttä 1: Vuosiluvut</div>
+    <div class="s-q" id="sQ"></div>
+    <div class="dots" id="sDots"></div>
+  </div>
+  <div class="s-msg" id="sMsg"></div>
+  <div class="s-start" id="sStart">
+    <div class="s-card" id="sCard">
+      <h2>🎯 Kenttä 1: Vuosiluvut</h2>
+      <p>Ruudun yli lentää vuosilukuja. Lue kysymys ja ammu oikeaa vuosilukua klikkaamalla sitä.</p>
+      <p>Kun olet vastannut kaikkiin kysymyksiin oikein, aukeaa kenttä 2: hakukonetehtävä.</p>
+      <button class="btn" onclick="startShooter()">Aloita</button>
+    </div>
+  </div>
+  <div id="crosshair"><i></i></div>
+</div>
+
+<!-- ===== KENTTÄ 2 ===== -->
+<header>
+  <h1>🇫🇮 Kenttä 2: Hakukonetehtävä</h1>
+  <p>Aloita pallosta 1. Seuraava numero aukeaa, kun olet tutkinut edellisen väitteen ja sulkenut sen.
+     Selvitä hakukoneella, onko väite <b>totta vai tarua</b>. Jos väite on tarua, kirjoita sen numero ylös.
+     Lopuksi syötä tarujen numerot pienimmästä suurimpaan oranssiin palloon.</p>
+</header>
+<div class="scene" id="scene">
+  <div class="year">1917</div><div class="pole"></div><div class="flag"></div>
+  <div class="trees"></div><div class="hills"></div>
+  <div class="candle" style="left:58%"></div><div class="candle" style="left:64%"></div>
+</div>
+<div class="progress" id="progress">Tutkittu 0 / 9 väitettä</div>
+<div class="toast" id="toast"></div>
+<div class="tips">
+  <h3>🔎 Näin haet tietoa fiksusti</h3>
+  <ul>
+    <li><b>Käytä lyhyitä hakusanoja.</b> Älä kirjoita koko väitettä, vaan 2–4 tärkeintä sanaa, esim. <i>Suomen ensimmäinen presidentti</i>.</li>
+    <li><b>Lainausmerkit</b> hakevat tarkkaa ilmausta: <i>"itsenäisyysjulistus"</i>.</li>
+    <li><b>Tarkista lähde.</b> Luotettavia ovat esim. viranomaisten, museoiden, yliopistojen ja Ylen sivut. Wikipedia on hyvä alku, mutta katso sen lähteet.</li>
+    <li><b>Vertaa kahta lähdettä.</b> Jos ne kertovat saman asian, tieto on todennäköisemmin oikein.</li>
+    <li><b>Lue tarkasti.</b> Väitteessä voi olla yksi pieni virhe, kuten väärä vuosi tai nimi.</li>
+  </ul>
+</div>
+
+<!-- ===== KENTTÄ 3 ===== -->
+<div id="level3" class="level"><div class="l-wrap">
+  <div class="l-head"><h1>🔧 Kenttä 3: Hakusanapaja</h1><div id="l3Info"></div></div>
+  <div class="dots" id="l3Dots" style="text-align:center"></div>
+  <div class="l-card" id="l3Card"></div>
+</div></div>
+
+<!-- ===== KENTTÄ 4 ===== -->
+<div id="level4" class="level"><div class="l-wrap">
+  <div class="l-head"><h1>🎵 Kenttä 4: Lauluparit</h1><div id="l4Info"></div></div>
+  <div class="dots" id="l4Dots" style="text-align:center"></div>
+  <div class="l-card" id="l4Card"></div>
+</div></div>
+
+<!-- ===== KENTTÄ 5 ===== -->
+<div id="level5" class="level"><div class="l-wrap">
+  <div class="l-head"><h1 id="l5Title">🚏 Kenttä 5: Bussipysäkki</h1><div id="l5Info"></div></div>
+  <div class="l-card" id="l5Card"></div>
+</div></div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+
+<script>
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+function dotsHtml(n, cur) { return Array.from({length:n}, (_, i) => `<span class="${i < cur ? 'done' : i === cur ? 'now' : ''}"></span>`).join(""); }
+function goLevel(n) {
+  document.querySelectorAll(".level").forEach(l => l.classList.remove("open"));
+  overlay.classList.remove("open");
+  const el = document.getElementById("level" + n); el.classList.add("open"); el.scrollTop = 0;
+}
+
+/* ================================================================
+   KENTTÄ 1: MUOKATTAVAT VUOSILUKUKYSYMYKSET
+   ================================================================ */
+const YEAR_QUESTIONS = [
+  { q: "Minä vuonna Suomi itsenäistyi?", a: 1917 },
+  { q: "Minä vuonna Suomen naiset saivat äänioikeuden?", a: 1906 },
+  { q: "Minä vuonna talvisota alkoi?", a: 1939 },
+  { q: "Minä vuonna jatkosota alkoi?", a: 1941 },
+  { q: "Minä vuonna Helsingissä järjestettiin kesäolympialaiset?", a: 1952 },
+  { q: "Minä vuonna Suomi liittyi Euroopan unioniin?", a: 1995 },
+  { q: "Minä vuonna euro tuli Suomessa käteisrahaksi?", a: 2002 }
+];
+const DISTRACTORS = [1809,1863,1899,1905,1906,1914,1917,1918,1919,1920,1932,1939,1940,1941,1944,1945,1948,1952,1956,1975,1991,1995,1999,2002,2017,2023];
+
+let sIndex = 0, sRunning = false, sSpawnTimer = null, sLastFrame = 0, sSinceCorrect = 0;
+const targets = [];
+const shooter = document.getElementById("shooter");
+const cross = document.getElementById("crosshair");
+shooter.addEventListener("mousemove", e => { cross.style.left = e.clientX + "px"; cross.style.top = e.clientY + "px"; });
+shooter.addEventListener("pointerdown", e => {
+  cross.style.left = e.clientX + "px"; cross.style.top = e.clientY + "px";
+  cross.classList.add("fire"); setTimeout(() => cross.classList.remove("fire"), 90);
+});
+function sDots() { document.getElementById("sDots").innerHTML = dotsHtml(YEAR_QUESTIONS.length, sIndex); }
+function startShooter() {
+  document.getElementById("sStart").style.display = "none";
+  sIndex = 0; showQuestion(); sRunning = true;
+  sLastFrame = performance.now(); requestAnimationFrame(loop);
+  sSpawnTimer = setInterval(spawn, 900); spawn();
+}
+function showQuestion() {
+  document.getElementById("sQ").textContent = YEAR_QUESTIONS[sIndex].q;
+  document.getElementById("sInfo").textContent = `Kenttä 1: Vuosiluvut – kysymys ${sIndex + 1} / ${YEAR_QUESTIONS.length}`;
+  sDots(); sSinceCorrect = 0;
+}
+function spawn() {
+  if (!sRunning) return;
+  const correct = YEAR_QUESTIONS[sIndex].a;
+  const onScreen = targets.some(t => t.year === correct && !t.dead);
+  let year;
+  if (!onScreen && (sSinceCorrect >= 2 || Math.random() < 0.3)) { year = correct; sSinceCorrect = 0; }
+  else { do { year = DISTRACTORS[Math.floor(Math.random() * DISTRACTORS.length)]; } while (year === correct); sSinceCorrect++; }
+  const el = document.createElement("div");
+  el.className = "year-t"; el.textContent = year;
+  shooter.appendChild(el);
+  const H = shooter.clientHeight, W = shooter.clientWidth;
+  const fromLeft = Math.random() < 0.5;
+  const y = 130 + Math.random() * Math.max(50, H - 220);
+  const speed = (90 + Math.random() * 110) * (W / 1200 + 0.4);
+  const t = { el, year, x: fromLeft ? -150 : W + 20, y, vx: fromLeft ? speed : -speed, wob: Math.random() * 6.28, dead: false };
+  el.style.top = y + "px";
+  el.addEventListener("pointerdown", ev => { ev.stopPropagation(); shoot(t); });
+  targets.push(t);
+}
+function loop(now) {
+  if (!sRunning) return;
+  const dt = Math.min(0.05, (now - sLastFrame) / 1000); sLastFrame = now;
+  const W = shooter.clientWidth;
+  for (let i = targets.length - 1; i >= 0; i--) {
+    const t = targets[i];
+    if (!t.dead) { t.x += t.vx * dt; t.wob += dt * 2; }
+    t.el.style.left = t.x + "px";
+    t.el.style.transform = `translateY(${Math.sin(t.wob) * 12}px)`;
+    if (t.x < -200 || t.x > W + 60) { t.el.remove(); targets.splice(i, 1); }
+  }
+  requestAnimationFrame(loop);
+}
+function sMsg(text) {
+  const m = document.getElementById("sMsg");
+  m.textContent = text; m.classList.add("show");
+  clearTimeout(sMsg.timer); sMsg.timer = setTimeout(() => m.classList.remove("show"), 1200);
+}
+function shoot(t) {
+  if (!sRunning || t.dead) return;
+  if (t.year === YEAR_QUESTIONS[sIndex].a) {
+    t.dead = true; t.el.classList.add("hit-ok");
+    sMsg("✔ Oikein! " + t.year);
+    setTimeout(() => { t.el.remove(); const k = targets.indexOf(t); if (k > -1) targets.splice(k, 1); }, 600);
+    sIndex++;
+    if (sIndex >= YEAR_QUESTIONS.length) { finishShooter(); return; }
+    targets.forEach(o => { if (o !== t) o.el.remove(); });
+    targets.splice(0, targets.length, t);
+    showQuestion();
+  } else {
+    t.dead = true; t.el.classList.add("hit-bad");
+    const f = document.getElementById("flash"); f.classList.add("on"); setTimeout(() => f.classList.remove("on"), 200);
+    sMsg("✖ Ei oikein – yritä uudelleen");
+    setTimeout(() => { t.el.remove(); const k = targets.indexOf(t); if (k > -1) targets.splice(k, 1); }, 500);
+  }
+}
+function finishShooter() {
+  sRunning = false; clearInterval(sSpawnTimer); sDots();
+  targets.forEach(o => o.el.remove()); targets.length = 0;
+  document.getElementById("sQ").textContent = "";
+  document.getElementById("sCard").innerHTML = `
+    <h2>🎉 Kenttä 1 läpäisty!</h2>
+    <p>Kaikki vuosiluvut oikein. Seuraavaksi selvität hakukoneen avulla, mitkä väitteet ovat tarua.</p>
+    <button class="btn" onclick="document.getElementById('shooter').classList.add('hidden')">Kenttä 2 →</button>`;
+  document.getElementById("sStart").style.display = "flex";
+}
+sDots();
+
+/* ================================================================
+   KENTTÄ 2: MUOKATTAVAT VÄITTEET
+   true = totta, false = tarua. x ja y = pallon sijainti (%).
+   Koodi muodostuu automaattisesti tarujen numeroista.
+   ================================================================ */
+const CLAIMS = [
+  { title: "Itsenäisyyspäivä", x: 34, y: 22, truth: true,
+    claim: "Eduskunta hyväksyi Suomen itsenäisyysjulistuksen 6. joulukuuta 1917, ja siksi itsenäisyyspäivää vietetään 6.12.",
+    hint: "itsenäisyysjulistus eduskunta 1917", explain: "Totta. Eduskunta hyväksyi senaatin antaman itsenäisyysjulistuksen 6.12.1917." },
+  { title: "Itsenäisyysjulistuksen lukija", x: 48, y: 15, truth: true,
+    claim: "Itsenäisyysjulistuksen esitteli eduskunnalle senaatin puheenjohtaja P. E. Svinhufvud.",
+    hint: "Svinhufvud itsenäisyysjulistus", explain: "Totta. Svinhufvud luki julistuksen eduskunnassa 4.12.1917." },
+  { title: "Ensimmäinen tunnustaja", x: 72, y: 30, truth: false,
+    claim: "Ensimmäisenä valtiona Suomen itsenäisyyden tunnusti Yhdysvallat jo joulukuussa 1917.",
+    hint: "Suomen itsenäisyyden tunnustaminen", explain: "Tarua. Ensimmäisenä itsenäisyyden tunnusti Neuvosto-Venäjä 31.12.1917. Yhdysvallat tunnusti Suomen vasta vuonna 1919." },
+  { title: "Suuriruhtinaskunta", x: 88, y: 48, truth: true,
+    claim: "Ennen itsenäistymistä Suomi oli vuodesta 1809 lähtien Venäjän keisarikuntaan kuuluva autonominen suuriruhtinaskunta.",
+    hint: "Suomen suuriruhtinaskunta 1809", explain: "Totta. Suomi liitettiin Venäjään vuonna 1809 autonomisena suuriruhtinaskuntana." },
+  { title: "Ensimmäinen presidentti", x: 12, y: 78, truth: false,
+    claim: "Suomen ensimmäinen presidentti oli P. E. Svinhufvud, joka valittiin tehtävään vuonna 1919.",
+    hint: "Suomen ensimmäinen presidentti", explain: "Tarua. Ensimmäinen presidentti oli K. J. Ståhlberg (1919). Svinhufvud toimi vuonna 1918 valtionhoitajana ja oli presidentti vasta 1931–1937." },
+  { title: "Sisällissota", x: 30, y: 66, truth: true,
+    claim: "Suomessa käytiin sisällissota vuonna 1918, vain muutama kuukausi itsenäistymisen jälkeen.",
+    hint: "Suomen sisällissota 1918", explain: "Totta. Sisällissota käytiin tammi–toukokuussa 1918." },
+  { title: "Siniristilippu", x: 20, y: 8, truth: false,
+    claim: "Suomen sinivalkoinen siniristilippu otettiin virallisesti käyttöön jo 1800-luvulla.",
+    hint: "Suomen lippu laki vuosi", explain: "Tarua. Siniristilippu vahvistettiin Suomen viralliseksi lipuksi lailla vuonna 1918." },
+  { title: "Eduskuntauudistus", x: 55, y: 70, truth: true,
+    claim: "Vuoden 1906 eduskuntauudistuksessa Suomen naiset saivat sekä äänioikeuden että oikeuden asettua ehdolle vaaleissa.",
+    hint: "eduskuntauudistus 1906 naiset", explain: "Totta. Suomen naiset saivat ensimmäisinä Euroopassa täydet poliittiset oikeudet vuonna 1906." },
+  { title: "Suomen kuningas", x: 78, y: 80, truth: true,
+    claim: "Vuonna 1918 Suomeen yritettiin saada kuningas, ja tehtävään valittiin saksalainen prinssi Friedrich Karl.",
+    hint: "Suomen kuningas 1918 Friedrich Karl", explain: "Totta. Friedrich Karl valittiin lokakuussa 1918, mutta hän luopui kruunusta saman vuoden joulukuussa, eikä koskaan saapunut Suomeen." }
+];
+const CODE_POS = { x: 94, y: 10 };
+
+const SECRET = CLAIMS.map((c,i)=> c.truth ? null : i+1).filter(Boolean).join("");
+let unlocked = 0, openIndex = null;
+const visited = new Set(), buttons = [];
+const scene = document.getElementById("scene");
+const overlay = document.getElementById("overlay");
+const modal = document.getElementById("modal");
+
+CLAIMS.forEach((c, i) => {
+  const b = document.createElement("button");
+  b.className = "hotspot"; b.style.left = c.x + "%"; b.style.top = c.y + "%";
+  b.onclick = () => { if (i > unlocked) { refuse(b, "🔒 Avaa ensin kohta " + (unlocked + 1) + "."); return; } openClaim(i); };
+  scene.appendChild(b); buttons.push(b);
+});
+const codeBtn = document.createElement("button");
+codeBtn.className = "hotspot code"; codeBtn.style.left = CODE_POS.x + "%"; codeBtn.style.top = CODE_POS.y + "%";
+codeBtn.onclick = () => { if (visited.size < CLAIMS.length) { refuse(codeBtn, "🔒 Koodi aukeaa, kun kaikki väitteet on tutkittu."); return; } openCode(); };
+scene.appendChild(codeBtn);
+
+function render() {
+  buttons.forEach((b, i) => {
+    b.classList.toggle("locked", i > unlocked);
+    b.classList.toggle("visited", visited.has(i));
+    b.textContent = i > unlocked ? "🔒" : (i + 1);
+    b.setAttribute("aria-label", i > unlocked ? "Väite " + (i+1) + " on lukossa" : "Väite " + (i+1) + ": " + CLAIMS[i].title);
+  });
+  const allDone = visited.size === CLAIMS.length;
+  codeBtn.classList.toggle("locked", !allDone);
+  codeBtn.textContent = allDone ? "?" : "🔒";
+  codeBtn.setAttribute("aria-label", allDone ? "Syötä koodi" : "Koodi on lukossa");
+  document.getElementById("progress").textContent = `Tutkittu ${visited.size} / ${CLAIMS.length} väitettä`;
+}
+function refuse(btn, msg) {
+  btn.classList.remove("shake"); void btn.offsetWidth; btn.classList.add("shake");
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(refuse.timer); refuse.timer = setTimeout(() => t.classList.remove("show"), 2000);
+}
+function openClaim(i) {
+  const c = CLAIMS[i]; openIndex = i;
+  modal.innerHTML = `
+    <button class="close" onclick="closeModal()" aria-label="Sulje">×</button>
+    <h2>${i+1}. ${c.title}</h2>
+    <p>Selvitä hakukoneen avulla, onko väite totta vai tarua. Jos väite on tarua, kirjoita numero <b>${i+1}</b> ylös.</p>
+    <p class="claim-label">Väite:</p>
+    <p class="claim">${c.claim}</p>
+    <a class="btn" href="https://www.google.com" target="_blank" rel="noopener">www.google.com</a>
+    <button class="btn secondary" onclick="document.getElementById('hint').classList.toggle('show')">💡 Hakuvinkki</button>
+    <div class="hint" id="hint">Kokeile hakusanoja: <code>${c.hint}</code><br>
+      <a href="https://www.google.com/search?q=${encodeURIComponent(c.hint)}" target="_blank" rel="noopener">Tee haku näillä sanoilla →</a></div>`;
+  overlay.classList.add("open");
+}
+let codeSolved = false;
+function openCode() {
+  openIndex = null;
+  modal.innerHTML = `
+    <button class="close" onclick="closeModal()" aria-label="Sulje">×</button>
+    <div class="code-box">
+      <h2>Kirjoita tähän ${SECRET.length}-numeroinen koodi:</h2>
+      <p style="font-size:.95rem;color:#555">Tarujen numerot pienimmästä suurimpaan.</p>
+      <input id="codeInput" inputmode="numeric" maxlength="${SECRET.length}" autocomplete="off">
+      <br><button class="go" onclick="checkCode()" aria-label="Tarkista">→</button>
+      <div class="feedback" id="feedback"></div>
+      <div id="result"></div>
+    </div>`;
+  overlay.classList.add("open");
+  if (codeSolved) { showSolved(); return; }
+  const inp = document.getElementById("codeInput");
+  inp.focus();
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") checkCode(); });
+}
+let tries = 0;
+function showSolved() {
+  const inp = document.getElementById("codeInput"); inp.value = SECRET; inp.disabled = true;
+  const fb = document.getElementById("feedback");
+  fb.className = "feedback ok"; fb.textContent = "🎉 Oikein! Löysit kaikki tarut. Kenttä 3 on nyt auki.";
+  document.getElementById("result").innerHTML =
+    "<ol class='answers'>" + CLAIMS.map(c => `<li><span class="tag ${c.truth?'t':'f'}">${c.truth?'TOTTA':'TARUA'}</span><b>${c.title}:</b> ${c.explain}</li>`).join("") + "</ol>" +
+    "<div style='text-align:center;margin-top:10px'><button class='btn' onclick='startLevel3()'>Kenttä 3: Hakusanapaja →</button></div>";
+}
+function checkCode() {
+  const val = document.getElementById("codeInput").value.replace(/\D/g, "");
+  const fb = document.getElementById("feedback");
+  if (val === SECRET) { codeSolved = true; showSolved(); }
+  else {
+    tries++; fb.className = "feedback bad";
+    fb.textContent = tries < 3 ? "Ei vielä oikein. Tarkista väitteet uudelleen ja vertaa useampaa lähdettä."
+      : "Ei vielä oikein. Vinkki: koodissa on " + SECRET.length + " numeroa, ja tarkista erityisesti vuosiluvut ja nimet.";
+  }
+}
+function closeModal() {
+  overlay.classList.remove("open");
+  if (openIndex !== null) {
+    visited.add(openIndex);
+    if (openIndex === unlocked && unlocked < CLAIMS.length - 1) unlocked++;
+    openIndex = null; render();
+  }
+}
+overlay.addEventListener("click", e => { if (e.target === overlay) closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && overlay.classList.contains("open")) closeModal(); });
+render();
+
+/* ================================================================
+   KENTTÄ 3: MUOKATTAVAT HAKUTEHTÄVÄT
+   required = ryhmät, joista jokaisesta pitää valita vähintään yksi sana.
+   bonus = lainausmerkkisana kolmanteen tähteen. bad = turhat sanat.
+   answers = hyväksytyt vastaukset (vastauksen pitää sisältää jokin näistä).
+   ================================================================ */
+const L3_TASKS = [
+  { task: "Selvitä, kuka sävelsi Suomen kansallislaulun Maamme.",
+    chips: ["kuka", "Maamme-laulu", "\"Maamme-laulu\"", "säveltäjä", "on", "sanat", "mikä", "video", "Suomen"],
+    required: [["Maamme-laulu", "\"Maamme-laulu\""], ["säveltäjä"]], bonus: "\"Maamme-laulu\"",
+    bad: ["kuka", "on", "mikä", "video", "sanat"], answers: ["pacius"], answerText: "Fredrik Pacius" },
+  { task: "Selvitä, millä äänin eduskunta hyväksyi itsenäisyysjulistuksen 6.12.1917. Kirjoita vastaukseksi molemmat luvut.",
+    chips: ["itsenäisyysjulistus", "\"itsenäisyysjulistus\"", "äänestys", "eduskunta", "1917", "millä", "kuinka", "hyväksyttiin", "monta", "juhla"],
+    required: [["itsenäisyysjulistus", "\"itsenäisyysjulistus\""], ["äänestys"]], bonus: "\"itsenäisyysjulistus\"",
+    bad: ["millä", "kuinka", "monta", "juhla", "hyväksyttiin"], answers: ["100"], mustAlso: "88", answerText: "100–88" },
+  { task: "Selvitä, ketkä suunnittelivat Suomen siniristilipun.",
+    chips: ["Suomen", "lippu", "\"Suomen lippu\"", "siniristilippu", "suunnittelija", "ketkä", "tekivät", "sininen", "värityskuva", "oli"],
+    required: [["lippu", "\"Suomen lippu\"", "siniristilippu"], ["suunnittelija"]], bonus: "\"Suomen lippu\"",
+    bad: ["ketkä", "tekivät", "sininen", "värityskuva", "oli"], answers: ["snellman", "tuukkanen"], answerText: "Eero Snellman ja Bruno Tuukkanen" },
+  { task: "Selvitä, kuka oli itsenäisen Suomen ensimmäinen ulkoministeri.",
+    chips: ["Suomen", "ensimmäinen", "ulkoministeri", "\"ensimmäinen ulkoministeri\"", "kuka", "oli", "nykyinen", "itsenäisen", "presidentti", "1918"],
+    required: [["ulkoministeri", "\"ensimmäinen ulkoministeri\""], ["ensimmäinen", "\"ensimmäinen ulkoministeri\""]], bonus: "\"ensimmäinen ulkoministeri\"",
+    bad: ["kuka", "oli", "nykyinen", "presidentti"], answers: ["stenroth"], answerText: "Otto Stenroth" }
+];
+
+let l3i = 0, l3Query = [], l3Stars = 0, l3Busy = false;
+function startLevel3() { goLevel(3); l3i = 0; renderL3(); }
+function l3Dots() {
+  document.getElementById("l3Dots").innerHTML = dotsHtml(L3_TASKS.length, l3i);
+  document.getElementById("l3Info").textContent = `Tehtävä ${Math.min(l3i + 1, L3_TASKS.length)} / ${L3_TASKS.length}`;
+}
+function renderL3() {
+  l3Query = []; l3Stars = 0; l3Busy = false; l3Dots();
+  const t = L3_TASKS[l3i];
+  document.getElementById("l3Card").innerHTML = `
+    <div class="l-task">🔎 ${esc(t.task)}</div>
+    <div class="l-label">1. Rakenna hakulause klikkaamalla sanoja</div>
+    <div class="searchbar" id="l3Bar"></div>
+    <div class="l-label">Sanat:</div>
+    <div class="chips" id="l3Chips"></div>
+    <div style="margin-top:16px">
+      <button class="btn" onclick="evalL3()">Arvioi haku</button>
+      <button class="btn secondary" onclick="l3Query=[];drawL3()">Tyhjennä</button>
+    </div>
+    <div class="starsrow" id="l3Stars"></div>
+    <div class="l-fb" id="l3Fb"></div>
+    <div class="l3-answer" id="l3Ans">
+      <div class="l-label">2. Tee haku ja etsi vastaus</div>
+      <a class="btn" id="l3Go" target="_blank" rel="noopener">Hae Googlella →</a>
+      <div class="l-label" style="margin-top:14px">3. Kirjoita vastaus</div>
+      <input id="l3Input" autocomplete="off" placeholder="Vastaus" onkeydown="if(event.key==='Enter')checkL3()">
+      <button class="btn" onclick="checkL3()">Tarkista vastaus</button>
+      <div class="l-fb" id="l3AnsFb" style="font-weight:700;margin-top:8px"></div>
+    </div>
+    <div class="tipbox">💡 Hyvä haku on lyhyt: valitse vain tärkeimmät sanat. Kysymyssanat, kuten <i>kuka</i> ja <i>mikä</i>, eivät yleensä auta. Lainausmerkit hakevat tarkkaa ilmausta.</div>`;
+  drawL3();
+}
+function drawL3() {
+  const t = L3_TASKS[l3i];
+  document.getElementById("l3Bar").innerHTML = '<span>🔍</span>' + (l3Query.length
+    ? l3Query.map((w, k) => `<button class="chip" onclick="l3Remove(${k})" title="Poista">${esc(w)} ✕</button>`).join("")
+    : '<span class="ph">Klikkaa alla olevia sanoja…</span>');
+  document.getElementById("l3Chips").innerHTML = t.chips.map((w, k) =>
+    `<button class="chip ${l3Query.includes(w) ? 'used' : ''}" onclick="l3Add(${k})">${esc(w)}</button>`).join("");
+  document.getElementById("l3Stars").textContent = "";
+  document.getElementById("l3Fb").innerHTML = "";
+  document.getElementById("l3Ans").classList.remove("show");
+}
+function l3Add(k) { const w = L3_TASKS[l3i].chips[k]; if (!l3Query.includes(w)) { l3Query.push(w); drawL3(); } }
+function l3Remove(k) { l3Query.splice(k, 1); drawL3(); }
+function evalL3() {
+  const t = L3_TASKS[l3i];
+  const fb = document.getElementById("l3Fb"), starsEl = document.getElementById("l3Stars");
+  if (!l3Query.length) { fb.textContent = "Hakukenttä on tyhjä. Valitse ensin sanoja."; return; }
+  const missing = t.required.filter(g => !g.some(w => l3Query.includes(w)));
+  const bad = l3Query.filter(w => t.bad.includes(w));
+  const tips = [];
+  if (missing.length) { l3Stars = 0; tips.push("Hausta puuttuu tärkeä sana. Mieti, mitkä sanat kuvaavat asiaa, jota etsit."); }
+  else if (bad.length) { l3Stars = 1; tips.push("Hausta löytyvät tärkeät sanat, mutta mukana on turhia sanoja: <b>" + bad.map(esc).join(", ") + "</b>. Poista ne klikkaamalla."); }
+  else {
+    l3Stars = l3Query.includes(t.bonus) ? 3 : 2;
+    tips.push(l3Stars === 2 ? "Hyvä haku! Saat kolmannen tähden, jos käytät lainausmerkkejä tarkassa ilmauksessa." : "Erinomainen haku: lyhyt, tarkka ja lainausmerkit oikeassa paikassa.");
+  }
+  if (l3Query.length > 4 && !missing.length) tips.push("Vinkki: alle viiden sanan haku toimii yleensä parhaiten.");
+  starsEl.textContent = "★".repeat(l3Stars) + "☆".repeat(3 - l3Stars);
+  starsEl.style.color = l3Stars >= 2 ? "#f5a623" : "#9aa5b5";
+  fb.innerHTML = tips.join("<br>") + (l3Stars < 2 ? "<br><i>Tarvitset vähintään kaksi tähteä, jotta pääset hakemaan.</i>" : "");
+  const ans = document.getElementById("l3Ans");
+  if (l3Stars >= 2) {
+    document.getElementById("l3Go").href = "https://www.google.com/search?q=" + encodeURIComponent(l3Query.join(" "));
+    ans.classList.add("show"); document.getElementById("l3AnsFb").textContent = "";
+  } else ans.classList.remove("show");
+}
+function checkL3() {
+  if (l3Busy) return;
+  const t = L3_TASKS[l3i];
+  const v = document.getElementById("l3Input").value.toLowerCase().trim();
+  const fb = document.getElementById("l3AnsFb");
+  const ok = v && t.answers.some(a => v.includes(a)) && (!t.mustAlso || v.includes(t.mustAlso));
+  if (!ok) { fb.style.color = "#c62828"; fb.textContent = "Ei vielä oikein. Lue hakutulokset tarkasti ja tarkista kirjoitusasu."; return; }
+  l3Busy = true; fb.style.color = "#2e7d32"; fb.textContent = "✔ Oikein! " + t.answerText;
+  setTimeout(() => { l3i++; if (l3i < L3_TASKS.length) renderL3(); else finishL3(); }, 1300);
+}
+function finishL3() {
+  l3Dots(); document.getElementById("l3Info").textContent = "Kaikki tehtävät tehty";
+  document.getElementById("l3Card").innerHTML = `
+    <div style="text-align:center">
+      <h2 style="font-size:2rem;margin-top:0">🎉 Kenttä 3 läpäisty!</h2>
+      <p style="font-size:1.1rem;line-height:1.6">Hyviä hakuja! Seuraavaksi selvität tietoja suomalaisista lauluista.</p>
+      <ol class="answers">${L3_TASKS.map(t => `<li><b>${esc(t.task)}</b><br>${esc(t.answerText)}</li>`).join("")}</ol>
+      <button class="btn" onclick="startLevel4()">Kenttä 4: Lauluparit →</button>
+    </div>`;
+  document.getElementById("level3").scrollTop = 0;
+}
+
+/* ================================================================
+   KENTTÄ 4: MUOKATTAVAT LAULUT
+   Jokaisella laululla yksi tieto per kierros (samassa järjestyksessä kuin L4_ROUNDS).
+   Saman kierroksen tiedot eivät saa olla samoja kahdella laululla.
+   ================================================================ */
+const L4_ROUNDS = [
+  "Kuka sävelsi laulun?",
+  "Kuka esitti laulun tai kirjoitti sen sanat?",
+  "Mihin vuoteen tai tapahtumaan laulu liittyy?"
+];
+// Vihjeen hakusanat kierroksittain (lisätään laulun nimen perään)
+const L4_HINTWORDS = ["säveltäjä", "esittäjä sanoittaja", "vuosi"];
+const L4_SONGS = [
+  { song: "Maamme",                     facts: ["Fredrik Pacius", "Sanat: J. L. Runeberg", "Esitettiin ensimmäisen kerran 1848"] },
+  { song: "Finlandia",                  facts: ["Jean Sibelius", "Hymnin sanat: V. A. Koskenniemi", "Sävelletty sortokaudella 1899"] },
+  { song: "Murheellisten laulujen maa", facts: ["Mikko Syrjä", "Eppu Normaali", "Julkaistiin 1982 albumilla Tie vie"] },
+  { song: "Puhelinlangat laulaa",       facts: ["Pentti Viherluoto", "Katri Helena", "Katri Helenan hittiversio 1964"] },
+  { song: "Olen suomalainen",           facts: ["Toto Cutugno (alkuperäinen L'italiano)", "Kari Tapio", "Julkaistiin 1983"] },
+  { song: "Den glider in",              facts: ["Peter Karlsson", "Nick Borgen ja Ruotsin maajoukkue", "Suomen jääkiekon MM-kulta 1995"] },
+  { song: "Sininen ja valkoinen",       facts: ["Jukka Kuoppamäki", "Jukka Kuoppamäki esitti itse", "Julkaistiin 1971"] }
+];
+
+let l4r = 0, l4Sel = null, l4Done = new Set(), l4Miss = 0;
+function l4Query(i) { return '"' + L4_SONGS[i].song + '" ' + L4_HINTWORDS[l4r]; }
+function l4Url(i) { return "https://www.google.com/search?q=" + encodeURIComponent(l4Query(i)); }
+function l4Hint(i) {
+  const box = document.getElementById("l4HintBox");
+  box.innerHTML = `💡 <b>Vihje: ${esc(L4_SONGS[i].song)}</b><br>
+    Kirjoita hakukoneeseen: <code>${esc(l4Query(i))}</code><br>
+    Laulun nimi lainausmerkeissä hakee juuri tätä laulua. Perään tuleva sana kertoo, mitä tietoa etsit.<br>
+    <a href="${l4Url(i)}" target="_blank" rel="noopener">Tee haku näillä sanoilla →</a>`;
+  box.classList.add("show");
+}
+function startLevel4() { goLevel(4); l4r = 0; renderL4(); }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function renderL4() {
+  l4Sel = null; l4Done = new Set();
+  const order = shuffle(L4_SONGS.map((_, i) => i));
+  document.getElementById("l4Dots").innerHTML = dotsHtml(L4_ROUNDS.length, l4r);
+  document.getElementById("l4Info").textContent = `Kierros ${l4r + 1} / ${L4_ROUNDS.length}`;
+  document.getElementById("l4Card").innerHTML = `
+    <div class="l-task">🎶 ${esc(L4_ROUNDS[l4r])}</div>
+    <p style="margin-top:0">Klikkaa ensin laulua ja sitten siihen kuuluvaa tietoa. Jos et tiedä, hae tietoa painikkeella 🔍 tai pyydä vihje painikkeella 💡.</p>
+    <div class="l4-cols">
+      <div class="l4-col"><h3>Laulu</h3><div id="l4Left"></div></div>
+      <div class="l4-col"><h3>Tieto</h3><div id="l4Right"></div></div>
+    </div>
+    <div class="l-fb" id="l4Fb" style="font-weight:700;margin-top:10px"></div>
+    <div class="l4-hint" id="l4HintBox"></div>`;
+  document.getElementById("l4Left").innerHTML = L4_SONGS.map((s, i) => `
+    <div class="l4-row">
+      <button class="l4-item" id="l4L${i}" onclick="l4Pick(${i})">${esc(s.song)}</button>
+      <a class="l4-tool" href="${l4Url(i)}" target="_blank" rel="noopener" title="Hae Googlella">🔍</a>
+      <button class="l4-tool" onclick="l4Hint(${i})" title="Vihje">💡</button>
+    </div>`).join("");
+  document.getElementById("l4Right").innerHTML = order.map(i =>
+    `<button class="l4-item" id="l4R${i}" onclick="l4Match(${i})">${esc(L4_SONGS[i].facts[l4r])}</button>`).join("");
+}
+function l4Pick(i) {
+  if (l4Done.has(i)) return;
+  document.querySelectorAll("#l4Left .l4-item").forEach(b => b.classList.remove("sel"));
+  l4Sel = i; l4Miss = 0; document.getElementById("l4L" + i).classList.add("sel");
+}
+function l4Match(j) {
+  const fb = document.getElementById("l4Fb");
+  if (l4Done.has(j)) return;
+  if (l4Sel === null) { fb.style.color = "#555"; fb.textContent = "Valitse ensin laulu vasemmalta."; return; }
+  const L = document.getElementById("l4L" + l4Sel), R = document.getElementById("l4R" + j);
+  if (j === l4Sel) {
+    l4Done.add(j); L.classList.remove("sel"); L.classList.add("ok"); R.classList.add("ok");
+    fb.style.color = "#2e7d32"; fb.textContent = "✔ Oikein!"; l4Sel = null; l4Miss = 0;
+    document.getElementById("l4HintBox").classList.remove("show");
+    if (l4Done.size === L4_SONGS.length) setTimeout(() => { l4r++; if (l4r < L4_ROUNDS.length) renderL4(); else finishL4(); }, 1000);
+  } else {
+    R.classList.add("bad"); fb.style.color = "#c62828"; l4Miss++;
+    if (l4Miss >= 2) { fb.textContent = "✖ Ei oikein. Tässä vihje:"; l4Hint(l4Sel); }
+    else fb.textContent = "✖ Ei oikein. Hae tietoa painikkeella 🔍 tai pyydä vihje painikkeella 💡.";
+    setTimeout(() => R.classList.remove("bad"), 600);
+  }
+}
+function finishL4() {
+  document.getElementById("l4Dots").innerHTML = dotsHtml(L4_ROUNDS.length, L4_ROUNDS.length);
+  document.getElementById("l4Info").textContent = "Kaikki kierrokset tehty";
+  document.getElementById("l4Card").innerHTML = `
+    <div style="text-align:center">
+      <h2 style="font-size:2rem;margin-top:0">🎉 Kenttä 4 läpäisty!</h2>
+      <p style="font-size:1.1rem;line-height:1.6">Tiedonhaku on nyt hallussa. Vielä viimeinen koetus: suomalainen bussipysäkki.</p>
+      <ol class="answers">${L4_SONGS.map(s => `<li><b>${esc(s.song)}:</b> ${s.facts.map(esc).join(" · ")}</li>`).join("")}</ol>
+      <button class="btn" onclick="startLevel5()">Kenttä 5: Bussipysäkki →</button>
+    </div>`;
+  document.getElementById("level4").scrollTop = 0;
+}
+
+/* ===== KENTTÄ 5: BUSSIPYSÄKKI ===== */
+const L5_PEOPLE = [
+  { fig: "🧍‍♂️", name: "Jorma, 58" },
+  { fig: "🧍‍♀️", name: "Tiina, 34" },
+  { fig: "🧑‍🎓", name: "Opiskelija Aleksi" },
+  { fig: "👵",   name: "Mummo kauppakassin kanssa" },
+  { fig: "🧑‍💼", name: "Konsultti Mikko" },
+  { fig: "🧍",   name: "Teini kuulokkeet päässä" }
+];
+const RAIN_FROM = 3;            // monennestako tulijasta alkaa sataa (0 = ensimmäinen)
+const STOP_METERS = 12;         // pysäkin leveys metreinä (vain tulosta varten)
+const SHELTER = [40, 60];       // katoksen alue prosentteina
+const L5_MIN = 6, L5_MAX = 94;  // sallittu alue
+/* ================================== */
+
+let l5i = 0, l5Placed = [], l5Points = 0, l5Busy = false;
+
+function startLevel5() {
+  goLevel(5);
+  l5i = 0; l5Placed = []; l5Points = 0; l5Busy = false;
+  document.getElementById("l5Card").innerHTML = `
+    <div class="l-task">Sijoita jokainen tulija bussipysäkille klikkaamalla. Suomalainen tapa: mahdollisimman kauas muista.</div>
+    <div class="waiting" id="l5Wait"></div>
+    <div class="stop" id="l5Stop">
+      <div class="sign"></div><div class="shelter"></div><div class="rainfx"></div>
+    </div>
+    <p class="l-fb" id="l5Fb" style="min-height:1.6em;font-weight:700"></p>
+    <div class="score" id="l5Score">Pisteet: 0</div>
+    <div id="l5End"></div>`;
+  const stop = document.getElementById("l5Stop");
+  const ghost = document.createElement("div"); ghost.className = "person ghost"; ghost.id = "l5Ghost"; ghost.style.display = "none";
+  stop.appendChild(ghost);
+  stop.addEventListener("mousemove", e => {
+    if (l5Busy || l5i >= L5_PEOPLE.length) return;
+    ghost.style.display = "block"; ghost.textContent = L5_PEOPLE[l5i].fig; ghost.style.left = l5X(e) + "%";
+  });
+  stop.addEventListener("mouseleave", () => ghost.style.display = "none");
+  stop.addEventListener("click", e => l5Place(l5X(e)));
+  l5Next();
+}
+
+function l5X(e) {
+  const r = document.getElementById("l5Stop").getBoundingClientRect();
+  return Math.max(L5_MIN, Math.min(L5_MAX, (e.clientX - r.left) / r.width * 100));
+}
+
+function l5Next() {
+  document.getElementById("l5Info").textContent = `Tulija ${l5i + 1} / ${L5_PEOPLE.length}`;
+  document.getElementById("l5Stop").classList.toggle("rain", l5i >= RAIN_FROM);
+  const p = L5_PEOPLE[l5i];
+  document.getElementById("l5Wait").innerHTML =
+    `<span class="w-fig">${p.fig}</span><span>Pysäkille saapuu: <b>${p.name}</b>${l5i === RAIN_FROM ? " – ja alkaa sataa! 🌧️" : ""}</span>`;
+}
+
+function l5Dist(x) { return l5Placed.length ? Math.min(...l5Placed.map(p => Math.abs(p.x - x))) : 100; }
+function l5UnderShelter(x) { return x >= SHELTER[0] && x <= SHELTER[1]; }
+
+function l5BestSpot(avoidShelter) {
+  let best = L5_MIN, bestD = -1;
+  for (let x = L5_MIN; x <= L5_MAX; x += 0.5) {
+    if (avoidShelter && l5UnderShelter(x)) continue;
+    const d = l5Dist(x); if (d > bestD) { bestD = d; best = x; }
+  }
+  return best;
+}
+
+function l5Say(el, text, ms) {
+  const b = document.createElement("div"); b.className = "bubble"; b.textContent = text; el.appendChild(b);
+  setTimeout(() => b.remove(), ms || 2200);
+}
+
+function l5Place(x) {
+  if (l5Busy || l5i >= L5_PEOPLE.length) return;
+  l5Busy = true;
+  document.getElementById("l5Ghost").style.display = "none";
+  const p = L5_PEOPLE[l5i];
+  const el = document.createElement("div"); el.className = "person"; el.textContent = p.fig; el.style.left = x + "%";
+  document.getElementById("l5Stop").appendChild(el);
+  const fb = document.getElementById("l5Fb");
+  const raining = l5i >= RAIN_FROM;
+  const shelterTaken = l5Placed.some(q => l5UnderShelter(q.x));
+  const d = l5Dist(x);
+  let pts, text, color, moveTo = null, say = null;
+
+  if (raining && l5UnderShelter(x) && shelterTaken) {
+    pts = 0; color = "#c62828"; say = "Mie seison mieluummin sateessa.";
+    text = "Katoksessa on jo joku. Sade on pienempi paha kuin seura.";
+    moveTo = l5BestSpot(true);
+  } else if (d < 6) {
+    pts = 0; color = "#c62828"; say = ["Öh.", "Ahdistaa.", "…", "Anteeks."][Math.floor(Math.random() * 4)];
+    text = "Liian lähellä! Tulija siirtyy itse kauemmas.";
+    moveTo = l5BestSpot(false);
+  } else if (d < 12) {
+    pts = 1; color = "#e65100"; say = "Hmm."; text = "Hieman liian lähellä. Toinen vilkaisee kelloa hermostuneesti.";
+  } else if (d < 20) {
+    pts = 2; color = "#2e7d32"; say = "Ok."; text = "Hyväksyttävä etäisyys.";
+  } else {
+    pts = 3; color = "#2e7d32"; say = "Täydellistä."; text = "Erinomaista! Henkilökohtainen tila on turvattu.";
+  }
+  if (raining && l5UnderShelter(x) && !shelterTaken) { text += " Pääsit katokseen kuivaan. Onnekas."; }
+
+  l5Points += pts;
+  fb.style.color = color; fb.textContent = text;
+  document.getElementById("l5Score").textContent = `Pisteet: ${l5Points} / ${L5_PEOPLE.length * 3}`;
+  l5Say(el, say);
+  const finalX = moveTo !== null ? moveTo : x;
+  if (moveTo !== null) setTimeout(() => { el.style.left = moveTo + "%"; }, 700);
+  l5Placed.push({ x: finalX, el });
+
+  setTimeout(() => {
+    l5i++; l5Busy = false;
+    if (l5i < L5_PEOPLE.length) l5Next(); else l5Finish();
+  }, moveTo !== null ? 1900 : 1100);
+}
+
+function l5Finish() {
+  document.getElementById("l5Wait").innerHTML = "";
+  document.getElementById("l5Info").textContent = "Kaikki pysäkillä";
+  const xs = l5Placed.map(p => p.x).sort((a, b) => a - b);
+  let gaps = []; for (let i = 1; i < xs.length; i++) gaps.push(xs[i] - xs[i - 1]);
+  const avg = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : 0;
+  const meters = (avg / 100 * STOP_METERS).toFixed(1).replace(".", ",");
+  const max = L5_PEOPLE.length * 3;
+  const verdict = l5Points >= max - 3 ? "Erinomaista. Kukaan ei joutunut puhumaan kenellekään."
+                : l5Points >= max / 2 ? "Hyvä. Pieniä sosiaalisia riskejä, mutta selvittiin."
+                : "Pysäkillä oli tunnelmaa. Liikaakin.";
+  document.getElementById("l5End").innerHTML = `
+    <p style="font-size:1.1rem;line-height:1.6;margin-top:14px">🚌 Bussi saapuu.<br>
+      Keskimääräinen etäisyys: <b>${meters} metriä</b>. ${verdict}</p>
+    <button class="btn" onclick="l5Congrats()">Jatka →</button>`;
+}
+
+function l5Congrats() {
+  document.getElementById("l5Info").textContent = "";
+  document.getElementById("l5Title").textContent = "🇫🇮 Onnittelut!";
+  document.getElementById("l5Card").innerHTML = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:4rem">🎉🇫🇮🎉</div>
+      <h2 style="font-size:2.2rem;margin:10px 0">Onnittelut, läpäisit pelin!</h2>
+      <p style="font-size:1.15rem;line-height:1.6">Hienoa työtä!</p>
+    </div>`;
+}
+
+</script>
+</body>
+</html>
